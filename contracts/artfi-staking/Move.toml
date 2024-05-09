@@ -1,0 +1,20 @@
+[package]
+name = "TorqueNetwork"
+version = "1.0.0"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui", subdir = "crates/sui-framework/packages/sui-framework", rev = "devnet" }
+
+[addresses]
+torque =  "0x00"
+sui =  "0x02"
+
+# staking admin
+treasury_admin = "0x7ddc2a2e9fe19d9673573f5664a54b253b8a316bccbd2918a546aafd43098ee8"
+stake_emergency_admin = "0x7ddc2a2e9fe19d9673573f5664a54b253b8a316bccbd2918a546aafd43098ee8"
+
+# staking test addresses.
+treasury = "0x13"
+emergency = "0x14"
+alice = "0x15"
+bob = "0x16"
