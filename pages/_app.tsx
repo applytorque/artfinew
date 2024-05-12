@@ -5,6 +5,7 @@ import { createTheme, NextUIProvider } from '@nextui-org/react';
 import { WalletKitProvider } from '@mysten/wallet-kit';
 import { Nav } from '../components';
 
+
 const darkTheme = createTheme({
   type: 'dark',
   theme: {

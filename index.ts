@@ -1,3 +1,3 @@
-import Nav from './sui/Nav';
+import Nav from './Nav';
 
 export { Nav };

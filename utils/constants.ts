@@ -1,2 +1,4 @@
-export const PACKAGE_OBJECT_ID =
-  '0x7a397566abee80f9ecfef31e3e98cae7f9af0fb684cb6f3f9ba8ad43ede766fb';
+export const VESTING_PACKAGE_OBJECT_ID =
+  '0x884d99970a4c88de9c77bbe5912e959f35937e0d8c4a48b76d34a1f5473b145e';
+// export const PACKAGE_OBJECT_ID =
+// '0xc23df6d2d55665bfa280ac7438b42de377a6f9ba612b33a74a7c53e24ef9a30a';

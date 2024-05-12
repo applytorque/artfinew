@@ -1,154 +1,224 @@
-import React, { useState } from 'react';
-import { TransactionBlock } from '@mysten/sui.js';
-import { useWalletKit } from '@mysten/wallet-kit';
-import LoadModal from '@/components/LoadModal';
-import { PACKAGE_OBJECT_ID } from '../utils/constants';
+import React, { useState, useEffect } from 'react';
+import { getFullnodeUrl, SuiClient } from '@mysten/sui.js/client';
+import { TransactionBlock } from '@mysten/sui.js/transactions';
+import { ConnectButton, useWalletKit, WalletKitProvider } from '@mysten/wallet-kit';
+import { formatAddress } from '@mysten/sui.js/utils';
 
-const Create = () => {
-  const { signAndExecuteTransactionBlock } = useWalletKit();
+// Constants
+const VESTING_PACKAGE_ID = '0x...';  // Replace with your package object ID
+const VESTING_MODULE = 'linea_vesting::linear_vesting';
+const FULLNODE_URL = getFullnodeUrl('testnet');
 
-  // fields
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
-  const [inputAddresses, setInputAddresses] = useState('');
+// Create a SuiClient instance
+const client = new SuiClient({ url: FULLNODE_URL });
 
-  // Modal
-  const [loading, setLoading] = useState(false);
-  const [visible, setVisible] = React.useState(false);
-  const [hash, setHash] = useState('');
-  const [errMsg, setErrMsg] = useState('');
+const CreateVesting: React.FC = () => {
+  const [walletId, setWalletId] = useState<string>('');
+  const [status, setStatus] = useState<string>('');
+  const [token, setToken] = useState<string>('');
+  const [start, setStart] = useState<number>(Date.now());
+  const [duration, setDuration] = useState<number>(86400000); // 1 day in milliseconds
 
-  const closeHandler = () => {
-    setVisible(false);
-    setErrMsg('');
-  };
+  const { currentAccount, signAndExecuteTransactionBlock } = useWalletKit();
 
-  const handleAddressesChange = (e: any) => {
-    setInputAddresses(e.target.value);
-  };
+  useEffect(() => {
+    if (currentAccount?.address) {
+      setRecipient(currentAccount.address);
+    }
+  }, [currentAccount]);
 
-  const addressesArray = inputAddresses
-    .split(',')
-    .map((address) => address.trim());
-
-  // SUI blockchain Connection
-
-  const create = async () => {
-    setVisible(true);
-    setLoading(true);
+  const handleCreateVestingWallet = async () => {
+    if (!currentAccount) {
+      setStatus('Please connect your wallet.');
+      return;
+    }
 
     try {
       const tx = new TransactionBlock();
-
-      // const startTime = 1682831812;
-      // const endTime = 1682745412;
-
       tx.moveCall({
-        target:
-          // '0x9b218c7bebb08ef1fbe2d3725aa68aa4c2e86f04e7fa704139daa2a908a2648e::IDO::create_ido',
-          `${PACKAGE_OBJECT_ID}::IDO::create_ido`,
-
+        target: `${VESTING_PACKAGE_ID}::${VESTING_MODULE}::entry_new`,
         arguments: [
-          tx.pure(startTime),
-          // tx.pure(Date.now),
-          tx.pure(endTime),
-          tx.pure(addressesArray),
+          tx.pure(token),
+          tx.pure(start),
+          tx.pure(duration),
+          tx.pure(currentAccount.address),
         ],
       });
+      const result = await signAndExecuteTransactionBlock({ transactionBlock: tx });
+      setWalletId(result.digest); // assuming digest is the wallet ID
+      setStatus('Vesting wallet created successfully!');
+    } catch (error) {
+      setStatus(`Error: ${(error as Error).message}`);
+    }
+  };
 
-      const result = await signAndExecuteTransactionBlock({
-        transactionBlock: tx,
+  const handleCheckVestingStatus = async () => {
+    if (!currentAccount) {
+      setStatus('Please connect your wallet.');
+      return;
+    }
+
+    try {
+      const tx = new TransactionBlock();
+      tx.moveCall({
+        target: `${VESTING_PACKAGE_ID}::${VESTING_MODULE}::vesting_status`,
+        arguments: [tx.pure(walletId)],
       });
-      setHash(result.digest);
-      console.log({ result });
-      setLoading(false);
-    } catch (err: any) {
-      setLoading(false);
-      console.error(err.message);
+      const result = await signAndExecuteTransactionBlock({ transactionBlock: tx });
+      setStatus(`Vesting Status: ${result}`);
+    } catch (error) {
+      setStatus(`Error: ${(error as Error).message}`);
+    }
+  };
 
-      if (err.message.includes('Rejected from user'))
-        setErrMsg('You Reject the transaction ');
-      else setErrMsg('Something went wrong');
+  const handleClaimVestedTokens = async () => {
+    if (!currentAccount) {
+      setStatus('Please connect your wallet.');
+      return;
+    }
+
+    try {
+      const tx = new TransactionBlock();
+      tx.moveCall({
+        target: `${VESTING_PACKAGE_ID}::${VESTING_MODULE}::entry_claim`,
+        arguments: [tx.pure(walletId)],
+      });
+      const result = await signAndExecuteTransactionBlock({ transactionBlock: tx });
+      setStatus(`Claimed Vested Tokens: ${result}`);
+    } catch (error) {
+      setStatus(`Error: ${(error as Error).message}`);
+    }
+  };
+
+  const handleDestroyZeroBalanceWallet = async () => {
+    if (!currentAccount) {
+      setStatus('Please connect your wallet.');
+      return;
+    }
+
+    try {
+      const tx = new TransactionBlock();
+      tx.moveCall({
+        target: `${VESTING_PACKAGE_ID}::${VESTING_MODULE}::entry_destroy_zero`,
+        arguments: [tx.pure(walletId)],
+      });
+      const result = await signAndExecuteTransactionBlock({ transactionBlock: tx });
+      setStatus(`Destroyed Wallet: ${result}`);
+    } catch (error) {
+      setStatus(`Error: ${(error as Error).message}`);
     }
   };
 
   return (
-    <>
-      <div className="mt-16">
-        <div className="bg-[#10172A] rounded-md shadow-md px-6 py-8 mx-auto max-w-md">
-          <div className="mb-4">
-            <label htmlFor="name" className="block text-white font-bold mb-2">
-              Start Time
-            </label>
-            <input
-              id="time"
-              name="Epoch Start Time"
-              value={startTime}
-              onChange={(event) => setStartTime(event.target.value)}
-              className="appearance-none bg-[#1E293B] rounded w-full py-2 px-3 text-gray-200 leading-tight focus:outline-none focus:shadow-outline"
-              placeholder="Enter Start Time in Epoch"
-            />
-          </div>
-          <div className="mb-4">
-            <label htmlFor="name" className="block text-white font-bold mb-2">
-              End Time
-            </label>
-            <input
-              id="time"
-              name="Epoch End Time"
-              value={endTime}
-              onChange={(event) => setEndTime(event.target.value)}
-              className="appearance-none bg-[#1E293B] rounded w-full py-2 px-3 text-gray-200 leading-tight focus:outline-none focus:shadow-outline"
-              placeholder="Enter End Time in Epoch"
-            />
-          </div>
-
-          <div className="mb-6">
-            <label
-              htmlFor="message"
-              className="block text-white font-bold mb-2"
-            >
-              Address
-            </label>
-
-            <input
-              id="address"
-              name="address"
-              value={inputAddresses}
-              onChange={handleAddressesChange}
-              className="appearance-none bg-[#1E293B] rounded w-full py-2 px-3 text-gray-200 leading-tight focus:outline-none focus:shadow-outline"
-              placeholder="Enter your address"
-            />
-          </div>
-          <div className="flex items-center justify-center">
-            <button
-              type="submit"
-              className="bg-purple-200 hover:bg-purple-300 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-              onClick={create}
-            >
-              Submit
-            </button>
-          </div>
-        </div>
-
-        <LoadModal
-          visible={visible}
-          closeHandler={closeHandler}
-          hash={hash}
-          isLoading={loading}
-          errorMessage={errMsg}
+    <WalletKitProvider>
+      <div className="container mx-auto p-6">
+        <h1 className="text-2xl font-bold mb-6">Create Vesting Wallet</h1>
+        <ConnectButton
+          connectText={'Connect Wallet'}
+          connectedText={`Connected: ${formatAddress(currentAccount?.address ?? '')}`}
         />
+
+        {currentAccount && (
+          <>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Token:
+                <input
+                  type="text"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+              </label>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Start Date (timestamp):
+                <input
+                  type="number"
+                  value={start}
+                  onChange={(e) => setStart(Number(e.target.value))}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+              </label>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Duration (ms):
+                <input
+                  type="number"
+                  value={duration}
+                  onChange={(e) => setDuration(Number(e.target.value))}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+              </label>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Recipient Address:
+                <input
+                  type="text"
+                  value={currentAccount.address}
+                  readOnly
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-gray-100"
+                />
+              </label>
+            </div>
+            <button
+              onClick={handleCreateVestingWallet}
+              className="mb-6 w-full bg-indigo-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Create Vesting Wallet
+            </button>
+
+            <h2 className="text-xl font-semibold mb-4">Check Vesting Status</h2>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Wallet ID:
+                <input
+                  type="text"
+                  value={walletId}
+                  onChange={(e) => setWalletId(e.target.value)}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                />
+              </label>
+            </div>
+            <button
+              onClick={handleCheckVestingStatus}
+              className="mb-6 w-full bg-indigo-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Check Status
+            </button>
+
+            <h2 className="text-xl font-semibold mb-4">Claim Vested Tokens</h2>
+            <button
+              onClick={handleClaimVestedTokens}
+              className="mb-6 w-full bg-indigo-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Claim Tokens
+            </button>
+
+            <h2 className="text-xl font-semibold mb-4">Destroy Zero Balance Wallet</h2>
+            <button
+              onClick={handleDestroyZeroBalanceWallet}
+              className="mb-6 w-full bg-indigo-600 text-white px-4 py-2 rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              Destroy Wallet
+            </button>
+          </>
+        )}
+
+        <div className="bg-gray-100 p-4 rounded-md shadow-sm">
+          <h3 className="text-lg font-medium">Status</h3>
+          <p className="text-gray-700">{status}</p>
+        </div>
       </div>
-    </>
+    </WalletKitProvider>
   );
 };
 
-export default Create;
+export default CreateVesting;
 
-// <button
-//   type="submit"
-//   className="bg-purple-200 hover:bg-purple-300 text-gray-800 font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-//   onClick={create}
-// >
-//   Click
-// </button>
+function setRecipient(address: string) {
+  throw new Error('Function not implemented.');
+}

@@ -1,8 +1,11 @@
 import React from 'react';
 import Link from 'next/link';
 import { ConnectButton } from '@mysten/wallet-kit';
+// import Create from '@/pages/create';
+// import { log } from 'console';
 
 const Nav = () => {
+  console.log("in the nav")
   return (
     <>
       <nav className="sticky top-0 z-10 bg-black">
@@ -13,6 +16,7 @@ const Nav = () => {
             </Link>
             <div className="hidden md:flex space-x-4 text-purple-200">
               <Link href="create" className="text-purple-300">
+
                 Create IDO
               </Link>
               <Link href="fund" className="text-purple-300">
@@ -28,7 +32,7 @@ const Nav = () => {
               </button>
             </div>
             <div className="">
-              <ConnectButton />
+              <ConnectButton />/
             </div>
           </div>
         </div>
