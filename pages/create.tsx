@@ -3,12 +3,15 @@ import { getFullnodeUrl, SuiClient } from '@mysten/sui.js/client';
 import { TransactionBlock } from '@mysten/sui.js/transactions';
 import { ConnectButton, useWalletKit, WalletKitProvider } from '@mysten/wallet-kit';
 import { formatAddress } from '@mysten/sui.js/utils';
+import { Ed25519Keypair } from '@mysten/sui.js/keypairs/ed25519';
 
 // Constants
-const VESTING_PACKAGE_ID = '0x...';  // Replace with your package object ID
+const VESTING_PACKAGE_ID = '0x884d99970a4c88de9c77bbe5912e959f35937e0d8c4a48b76d34a1f5473b145e';  // Replace with your package object ID
 const VESTING_MODULE = 'linea_vesting::linear_vesting';
-const FULLNODE_URL = getFullnodeUrl('testnet');
+const FULLNODE_URL = getFullnodeUrl('devnet');
 
+
+const keypair = new Ed25519Keypair();
 // Create a SuiClient instance
 const client = new SuiClient({ url: FULLNODE_URL });
 
@@ -35,18 +38,13 @@ const CreateVesting: React.FC = () => {
 
     try {
       const tx = new TransactionBlock();
-      tx.moveCall({
-        target: `${VESTING_PACKAGE_ID}::${VESTING_MODULE}::entry_new`,
-        arguments: [
-          tx.pure(token),
-          tx.pure(start),
-          tx.pure(duration),
-          tx.pure(currentAccount.address),
-        ],
-      });
-      const result = await signAndExecuteTransactionBlock({ transactionBlock: tx });
-      setWalletId(result.digest); // assuming digest is the wallet ID
-      setStatus('Vesting wallet created successfully!');
+tx.mergeCoins('0xe19739da1a701eadc21683c5b127e62b553e833e8a15a4f292f4f48b4afea3f2', [
+	'0x127a8975134a4824d9288722c4ee4fc824cd22502ab4ad9f6617f3ba19229c1b',
+]);
+const result = await client.signAndExecuteTransactionBlock({
+	signer: keypair,
+	transactionBlock: tx,
+});
     } catch (error) {
       setStatus(`Error: ${(error as Error).message}`);
     }
@@ -60,12 +58,13 @@ const CreateVesting: React.FC = () => {
 
     try {
       const tx = new TransactionBlock();
-      tx.moveCall({
-        target: `${VESTING_PACKAGE_ID}::${VESTING_MODULE}::vesting_status`,
-        arguments: [tx.pure(walletId)],
-      });
-      const result = await signAndExecuteTransactionBlock({ transactionBlock: tx });
-      setStatus(`Vesting Status: ${result}`);
+tx.mergeCoins('0xe19739da1a701eadc21683c5b127e62b553e833e8a15a4f292f4f48b4afea3f2', [
+	'0x127a8975134a4824d9288722c4ee4fc824cd22502ab4ad9f6617f3ba19229c1b',
+]);
+const result = await client.signAndExecuteTransactionBlock({
+	signer: keypair,
+	transactionBlock: tx,
+});
     } catch (error) {
       setStatus(`Error: ${(error as Error).message}`);
     }
@@ -79,12 +78,13 @@ const CreateVesting: React.FC = () => {
 
     try {
       const tx = new TransactionBlock();
-      tx.moveCall({
-        target: `${VESTING_PACKAGE_ID}::${VESTING_MODULE}::entry_claim`,
-        arguments: [tx.pure(walletId)],
-      });
-      const result = await signAndExecuteTransactionBlock({ transactionBlock: tx });
-      setStatus(`Claimed Vested Tokens: ${result}`);
+tx.mergeCoins('0xe19739da1a701eadc21683c5b127e62b553e833e8a15a4f292f4f48b4afea3f2', [
+	'0x127a8975134a4824d9288722c4ee4fc824cd22502ab4ad9f6617f3ba19229c1b',
+]);
+const result = await client.signAndExecuteTransactionBlock({
+	signer: keypair,
+	transactionBlock: tx,
+});
     } catch (error) {
       setStatus(`Error: ${(error as Error).message}`);
     }
@@ -98,12 +98,13 @@ const CreateVesting: React.FC = () => {
 
     try {
       const tx = new TransactionBlock();
-      tx.moveCall({
-        target: `${VESTING_PACKAGE_ID}::${VESTING_MODULE}::entry_destroy_zero`,
-        arguments: [tx.pure(walletId)],
-      });
-      const result = await signAndExecuteTransactionBlock({ transactionBlock: tx });
-      setStatus(`Destroyed Wallet: ${result}`);
+tx.mergeCoins('0xe19739da1a701eadc21683c5b127e62b553e833e8a15a4f292f4f48b4afea3f2', [
+	'0x127a8975134a4824d9288722c4ee4fc824cd22502ab4ad9f6617f3ba19229c1b',
+]);
+const result = await client.signAndExecuteTransactionBlock({
+	signer: keypair,
+	transactionBlock: tx,
+});
     } catch (error) {
       setStatus(`Error: ${(error as Error).message}`);
     }
@@ -220,5 +221,8 @@ const CreateVesting: React.FC = () => {
 export default CreateVesting;
 
 function setRecipient(address: string) {
-  throw new Error('Function not implemented.');
+  // Implement the function logic here
+  // For example:
+  // set the recipient state variable
+  // setRecipientState(address);
 }
